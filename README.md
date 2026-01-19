@@ -82,4 +82,4 @@ serverless deploy --stage development
 
 * **Role:** Backend Development (Python/Lambda) & Project Management.
 * **Contribution:** Designed the Serverless Architecture, implemented the API/Event Bus, and led the team integration strategies.
-* **Contact:** [Santiago Lozano](https://www.linkedin.com/in/santiago-lozano/)
+* **Contact:** [Santiago Lozano](https://www.linkedin.com/in/santiago-lozano-81171624b/)
