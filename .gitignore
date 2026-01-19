@@ -1,0 +1,64 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Entornos de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+*.deb
+*.rpm
+*.whl
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# entorno
+.env*
+
+
+# Archivos de configuración de IDEs/editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Archivos de entorno (no versionar)
+.env
+.env.*
+!.env.example
+
+# Dependencias de Node (Serverless Framework)
+node_modules/
+
+# Salidas de Serverless Framework
+.serverless/
+
+# Archivos de pruebas y cobertura
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# Cachés de pipenv/Poetry
+pip-wheel-metadata/
+.python-version
+poetry.lock
+
+# Archivos de base de datos SQLite (si aplica)
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Otros
+*.bak
+*.tmp

@@ -1,0 +1,20 @@
+{
+  "name": "2025-tic2-grupo-14",
+  "version": "1.0.0",
+  "description": "Laboratorio TIC II - Grupo 14 - 2025",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless": "^4.16.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-python-requirements": "^6.1.2"
+  }
+}

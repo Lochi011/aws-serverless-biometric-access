@@ -1,0 +1,88 @@
+# .github/workflows/ci-deploy.yml
+name: Deploy Lambdas
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write    # para OIDC
+  contents: read     # para git diff
+
+env:
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::434698871544:role/GitHubActionsDeployRole
+  ECR_ACCOUNT: 434698871544.dkr.ecr.us-east-1.amazonaws.com
+  STAGE: ${{ github.event.inputs.stage || 'development' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar yq v4
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.45.2/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Configurar AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1     # hardcodeada
+
+      - name: Detectar funciones afectadas
+        id: detect
+        shell: bash
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          echo "Archivos cambiados:"; echo "$CHANGED"
+
+          FNS=( $(yq e '.functions | keys | .[]' serverless.yml) )
+          TO_DEPLOY=()
+
+          for FN in "${FNS[@]}"; do
+            IMG_URI=$(yq e ".functions.${FN}.image.uri // \"null\"" serverless.yml)
+            if [[ "$IMG_URI" != "null" ]]; then
+              # patrones genéricos para la función Docker
+              if echo "$CHANGED" | grep -E -q '(^Dockerfile$|^layer-common/|^requirements-register\.txt$|^handlers/register_access_user\.py$|^services/access_users_service\.py|^repositories/access_user_repo\.py|^shared/)'; then
+                TO_DEPLOY+=("$FN")
+              fi
+            else
+              PATTERNS=( $(yq e ".functions.${FN}.package.patterns[]" serverless.yml | grep -v '^\!') )
+              for P in "${PATTERNS[@]}"; do
+                if echo "$CHANGED" | grep -F -q "$P"; then
+                  TO_DEPLOY+=("$FN")
+                  break
+                fi
+              done
+            fi
+          done
+
+          UNIQUE=( $(printf "%s\n" "${TO_DEPLOY[@]}" | sort -u) )
+          echo "functions=${UNIQUE[*]}" >> $GITHUB_OUTPUT
+          echo "Se desplegarán: ${UNIQUE[*]}"
+
+      - name: Desplegar funciones cambiadas
+        if: steps.detect.outputs.functions != ''
+        shell: bash
+        run: |
+          for FN in ${{ steps.detect.outputs.functions }}; do
+            echo "🚀 Desplegando $FN …"
+
+            IMG_URI=$(yq e ".functions.${FN}.image.uri // \"null\"" serverless.yml)
+            if [[ "$IMG_URI" != "null" ]]; then
+              IMG_NAME=${FN,,}-lambda
+              echo "   • Docker build & push de $IMG_NAME"
+              docker build --no-cache -t $IMG_NAME:latest .
+              docker tag $IMG_NAME:latest ${{ env.ECR_ACCOUNT }}/$IMG_NAME:latest
+              docker push ${{ env.ECR_ACCOUNT }}/$IMG_NAME:latest
+            fi
+
+            npx serverless deploy function -f $FN --stage ${{ env.STAGE }}
+          done

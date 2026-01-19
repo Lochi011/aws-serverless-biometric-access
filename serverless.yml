@@ -1,0 +1,225 @@
+service: mi-mvp
+
+frameworkVersion: "^4.0.0"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'development'}
+  region: us-east-1
+
+  environment:
+    DB_HOST:       ${env:DB_HOST}
+    DB_NAME:       ${env:DB_NAME}
+    DB_USER:       ${env:DB_USER}
+    DB_PASS:       ${env:DB_PASS}
+    DB_PORT:       ${env:DB_PORT}
+
+    JWT_SECRET:    ${env:JWT_SECRET}
+    JWT_ALGORITHM: ${env:JWT_ALGORITHM}
+
+    IOT_ENDPOINT:   ${env:IOT_ENDPOINT}
+    EVENT_BUS_NAME: ${env:EVENT_BUS_NAME}
+    S3_BUCKET:      ${env:S3_BUCKET}
+
+
+package:
+  individually: true
+  exclude:
+    # ─── basura de control de versiones / CI ───────────────────────────
+    - '.git/**'
+    - '.github/**'
+    # ─── entornos y dependencias locales ──────────────────────────────
+    - '.venv/**'
+    - 'node_modules/**'
+    # ─── artefactos y cachés de Python / tests ────────────────────────
+    - '**/__pycache__/**'
+    - '.pytest_cache/**'
+    - 'tests/**'
+    - 'pytest.ini'
+    - 'conftest.py'
+    - 'serverless.yml'
+    # ─── restos de empaquetado manual ─────────────────────────────────
+    - '/requirements.txt' 
+    - '.requirements.zip'     # solo lo usas local, no en Lambda
+    # ─── documentación y metadatos que no necesita Lambda ────────────
+    - 'README.md'
+    - '.gitignore'
+    - 'package.json'
+    - 'package-lock.json'
+    # ─── variables de entorno en archivos (nunca a producción) ────────
+    - '.env.*'
+    # ─── lambdas antiguas migradas (lambda_add_device, etc.) ──────────
+    - 'lambda_*/**'
+
+
+functions:
+  auth:
+    name: jwtRequestAuthorizer
+    handler: handlers/authorizer.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                             # 1) excluye todo
+        - 'handlers/authorizer.py'            # 2) incluye solo el handler
+        - 'services/authorizer_service.py'    # 3) incluye el servicio que usa el handler
+
+  login:
+    name: loginFunction
+    handler: handlers/login.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                         # 1) excluye todo
+        - 'handlers/login.py'             # 2) incluye el handler
+        - 'services/auth_service.py'      # 3) incluye el servicio de login
+        - 'repositories/web_user_repo.py' # 4) incluye el repo que usa AuthService
+        - 'shared/models.py'   
+        - 'shared/db.py'            # 5) incluye el modelo de Peewee (db)
+
+  ingestaLogs:
+    name: ingestaLogsFunction
+    handler: handlers/ingesta_logs.handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                                # 1) excluye todo
+        - 'handlers/ingesta_logs.py'             # 2) incluye solo el handler
+        - 'services/access_service.py'           # 3) incluye lógica de negocio
+        - 'repositories/access_log_repo.py'      # 4) repo de AccessLog
+        - 'repositories/device_repo.py'          # 5) repo de Device
+        - 'repositories/access_user_repo.py'     # 6) repo de AccessUser
+        - 'shared/models.py'  
+        - 'shared/db.py'                   # 7) modelo/DB
+
+  deleteAccessUser:
+    name: deleteUser
+    handler: handlers/delete_access_user.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                               # 1) excluye todo
+        - 'handlers/delete_access_user.py'      # 2) incluye el handler
+        - 'services/access_users_service.py'    # 3) incluye el servicio que usa el handler
+        - 'repositories/access_user_repo.py'    # 4) incluye el repo que usa el servicio
+        - 'shared/models.py'                    # 5) incluye el modelo/base de datos
+        - 'shared/db.py'                        # 6) incluye la lógica de conexión (db)
+        - 'services/storage_service.py'
+
+  getAccessUsers:
+    name: getAccessUsers
+    handler: handlers/get_access_users.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                              # 1) excluye todo
+        - 'handlers/get_access_users.py'       # 2) incluye solo el handler
+        - 'services/access_users_service.py'   # 3) incluye el servicio de usuarios
+        - 'repositories/access_user_repo.py'   # 4) incluye el repo de usuarios
+        - 'shared/models.py'                   # 5) incluye modelos/Peewee
+        - 'shared/db.py'                       # 6) incluye la conexión a BD
+  
+  getDevices:
+    name: getDevices
+    handler: handlers/get_devices.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                        # 1) excluye todo
+        - 'handlers/get_devices.py'      # 2) incluye el handler
+        - 'services/device_service.py'   # 3) incluye el servicio de devices
+        - 'repositories/device_repo.py'  # 4) incluye el repo de Device
+        - 'shared/models.py'             # 5) incluye modelos/Peewee
+        - 'shared/db.py'                 # 6) incluye la conexión a BD
+
+  getAccessLogs:
+    name: getAccessLogs
+    handler: handlers/get_access_logs.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                               # 1) excluye todo
+        - 'handlers/get_access_logs.py'         # 2) incluye el handler
+        - 'services/access_log_service.py'      # 3) servicio de logs
+        - 'repositories/access_log_repo.py'     # 4) repo de AccessLog
+        - 'repositories/device_repo.py'         # 5) repo de Device (para detalles de dispositivo)
+        - 'repositories/access_user_repo.py'    # 6) repo de AccessUser (para datos de usuario)
+        - 'shared/models.py'                    # 7) modelos Peewee
+        - 'shared/db.py'   
+  
+  editAllowedDevices:
+    name: editAllowedDevicesPerUser
+    handler: handlers/edit_allowed_devices.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                                   # 1) excluye todo
+        - 'handlers/edit_allowed_devices.py'        # 2) incluye el handler
+        - 'services/device_access_service.py'       # 3) servicio de gestión de accesos por dispositivo
+        - 'repositories/access_user_repo.py'        # 4) repo de AccessUser (para validar usuarios)
+        - 'repositories/device_repo.py'             # 5) repo de Device (para validar dispositivos)
+        - 'repositories/device_user_mapping_repo.py' # 6) repo de DeviceUserMapping (para actualizar mappings)
+        - 'shared/models.py'                        # 7) modelos Peewee
+        - 'shared/db.py'                            # 8) conexión a la base de datos
+
+  getAlertParameters:
+    name: getAlertParameters
+    handler: handlers/get_alert_parameters.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                                       # 1) excluye todo
+        - 'handlers/get_alert_parameters.py'            # 2) incluye el handler
+        - 'services/configuration_service.py'           # 3) servicio de configuración
+        - 'repositories/configuration_repo.py'          # 4) repo de Configuration
+        - 'shared/models.py'                            # 5) modelos Peewee
+        - 'shared/db.py'     
+  
+  editAlertParameters:
+    name: lambdaEditAlertParameters
+    handler: handlers/edit_alert_parameters.lambda_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    package:
+      patterns:
+        - '!**/*'                                       # 1) excluye todo
+        - 'handlers/edit_alert_parameters.py'           # 2) incluye el handler
+        - 'services/configuration_service.py'           # 3) servicio de configuración
+        - 'repositories/configuration_repo.py'          # 4) repo de Configuration
+        - 'shared/models.py'                            # 5) modelos Peewee
+        - 'shared/db.py'                                # 6) conexión a la base de datos
+
+  registerUserAccessFunction:
+    name: registerUserAccessFunction
+    image:
+      uri: ${aws:accountId}.dkr.ecr.us-east-1.amazonaws.com/register-access-user-lambda:latest
+
+
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
+    #zip: true
+    slim: true
+    fileName: layer-common/requirements.txt
+    useDownloadCache: false  # cachea ruedas descargadas
+    useStaticCache: false   # cachea la carpeta /cache/**/*. 2-3 × más rápido
+    noDeploy:
+      - boto3
+
+  dotenv:
+    path: .env.${self:provider.stage}
