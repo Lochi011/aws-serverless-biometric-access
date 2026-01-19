@@ -72,6 +72,7 @@ npm install
 
 # 2. Deploy to AWS
 serverless deploy --stage development
+```
 
 ---
 ## 👤 Author
