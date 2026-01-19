@@ -73,7 +73,9 @@ npm install
 # 2. Deploy to AWS
 serverless deploy --stage development
 
+---
 ## 👤 Author
+
 Santiago Lozano Backend Lead | Cloud Architect | Project Manager
 
 Role: Backend Development (Python/Lambda) & Project Management.
