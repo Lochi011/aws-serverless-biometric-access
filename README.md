@@ -77,10 +77,9 @@ serverless deploy --stage development
 ---
 ## 👤 Author
 
-Santiago Lozano Backend Lead | Cloud Architect | Project Manager
+**Santiago Lozano**
+*Backend Lead | Cloud Architect | Project Manager*
 
-Role: Backend Development (Python/Lambda) & Project Management.
-
-Contribution: Designed the Serverless Architecture, implemented the API/Event Bus, and led the team integration strategies.
-
-Contact: [(https://www.linkedin.com/in/santiago-lozano-81171624b/)
+* **Role:** Backend Development (Python/Lambda) & Project Management.
+* **Contribution:** Designed the Serverless Architecture, implemented the API/Event Bus, and led the team integration strategies.
+* **Contact:** [Santiago Lozano](https://www.linkedin.com/in/santiago-lozano/)
