@@ -1,4 +1,3 @@
-```markdown
 # ☁️ AWS Serverless IoT Backend for Biometric Access
 
 ![AWS IoT](https://img.shields.io/badge/AWS_IoT-Core-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
@@ -73,25 +72,3 @@ npm install
 
 # 2. Deploy to AWS
 serverless deploy --stage development
-
-```
-
-### Useful Commands
-
-* **Logs:** `serverless logs -f ingestaLogs -t`
-* **Local Invoke:** `serverless invoke local -f getDevices`
-
----
-
-## 👤 Author
-
-**Santiago Lozano**
-*Backend Lead | Cloud Architect | Project Manager*
-
-* **Role:** Backend Development (Python/Lambda) & Project Management.
-* **Contribution:** Designed the Serverless Architecture, implemented the API/Event Bus, and led the team integration strategies.
-* **Contact:** [LinkedIn Profile](https://www.google.com/search?q=https://www.linkedin.com/in/santiago-lozano/)
-
-```
-
-```
